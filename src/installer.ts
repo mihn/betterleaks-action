@@ -3,6 +3,7 @@ import * as tc from '@actions/tool-cache'
 import * as cache from '@actions/cache'
 import {HttpClient} from '@actions/http-client'
 import * as path from 'path'
+import * as semver from 'semver'
 import {
   TOOL_NAME,
   TOOL_REPO_OWNER,
@@ -84,8 +85,11 @@ export async function install(
   const numericVersion = stripVPrefix(resolvedVersion)
 
   const toolCacheRoot = process.env['RUNNER_TOOL_CACHE'] || ''
-  const cacheDirPath = path.join(toolCacheRoot, TOOL_NAME, numericVersion)
-  const cacheKey = `${TOOL_NAME}-${numericVersion}-${platform}-${arch}`
+  // Mirror @actions/tool-cache's directory naming (semver.clean) so the
+  // Actions cache path matches where cacheDir() actually writes.
+  const toolCacheVersion = semver.clean(numericVersion) || numericVersion
+  const cacheDirPath = path.join(toolCacheRoot, TOOL_NAME, toolCacheVersion)
+  const cacheKey = `${TOOL_NAME}-${toolCacheVersion}-${platform}-${arch}`
   const actionsCacheEnabled = Boolean(toolCacheRoot) && cache.isFeatureAvailable()
 
   // Check local tool cache, then restore from GitHub Actions cache
@@ -131,8 +135,10 @@ export async function install(
 
   if (actionsCacheEnabled) {
     try {
-      await cache.saveCache([cacheDirPath], cacheKey)
-      core.info(`Saved betterleaks ${numericVersion} to Actions cache`)
+      const cacheId = await cache.saveCache([cacheDirPath], cacheKey)
+      if (cacheId !== -1) {
+        core.info(`Saved betterleaks ${numericVersion} to Actions cache`)
+      }
     } catch (err) {
       core.warning(`Actions cache save failed: ${(err as Error).message}`)
     }

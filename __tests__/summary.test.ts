@@ -5,8 +5,8 @@ import * as core from '@actions/core'
 vi.mock('@actions/core')
 
 describe('summary', () => {
-  let mockWrite: vi.Mock
-  let mockSummary: Record<string, vi.Mock>
+  let mockWrite: Mock
+  let mockSummary: Record<string, Mock>
 
   beforeEach(() => {
     mockWrite = vi.fn().mockResolvedValue(undefined)

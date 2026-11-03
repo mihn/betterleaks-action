@@ -98493,6 +98493,7 @@ function getBinaryName(platform) {
 
 
 
+
 function stripVPrefix(version) {
     return version.startsWith('v') ? version.slice(1) : version;
 }
@@ -98535,8 +98536,11 @@ async function install(version, token) {
     const resolvedVersion = await resolveVersion(version, token);
     const numericVersion = stripVPrefix(resolvedVersion);
     const toolCacheRoot = process.env['RUNNER_TOOL_CACHE'] || '';
-    const cacheDirPath = external_path_namespaceObject.join(toolCacheRoot, TOOL_NAME, numericVersion);
-    const cacheKey = `${TOOL_NAME}-${numericVersion}-${platform}-${arch}`;
+    // Mirror @actions/tool-cache's directory naming (semver.clean) so the
+    // Actions cache path matches where cacheDir() actually writes.
+    const toolCacheVersion = node_modules_semver.clean(numericVersion) || numericVersion;
+    const cacheDirPath = external_path_namespaceObject.join(toolCacheRoot, TOOL_NAME, toolCacheVersion);
+    const cacheKey = `${TOOL_NAME}-${toolCacheVersion}-${platform}-${arch}`;
     const actionsCacheEnabled = Boolean(toolCacheRoot) && isFeatureAvailable();
     // Check local tool cache, then restore from GitHub Actions cache
     let cachedPath = find(TOOL_NAME, numericVersion, arch);
@@ -98578,8 +98582,10 @@ async function install(version, token) {
     }
     if (actionsCacheEnabled) {
         try {
-            await cache_saveCache([cacheDirPath], cacheKey);
-            info(`Saved betterleaks ${numericVersion} to Actions cache`);
+            const cacheId = await cache_saveCache([cacheDirPath], cacheKey);
+            if (cacheId !== -1) {
+                info(`Saved betterleaks ${numericVersion} to Actions cache`);
+            }
         }
         catch (err) {
             warning(`Actions cache save failed: ${err.message}`);

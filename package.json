@@ -7,7 +7,8 @@
     "build": "tsc",
     "package": "ncc build lib/main.js -o dist --source-map --license licenses.txt",
     "test": "vitest run --coverage",
-    "all": "npm run build && npm run package && npm test"
+    "all": "npm run build && npm run typecheck && npm run package && npm test",
+    "typecheck": "tsc -p tsconfig.test.json"
   },
   "repository": {
     "type": "git",
@@ -27,10 +28,12 @@
     "@actions/exec": "^3.0.0",
     "@actions/http-client": "^4.0.1",
     "@actions/io": "^3.0.2",
-    "@actions/tool-cache": "^4.0.0"
+    "@actions/tool-cache": "^4.0.0",
+    "semver": "^7.8.5"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/semver": "^7.8.0",
     "@vercel/ncc": "^0.38.1",
     "@vitest/coverage-v8": "^4.1.12",
     "typescript": "^5.4.5",

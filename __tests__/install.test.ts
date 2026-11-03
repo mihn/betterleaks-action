@@ -88,6 +88,34 @@ describe('install', () => {
     )
   })
 
+  it('uses semver-cleaned version dir, matching tool-cache layout', async () => {
+    vi.mocked(tc.find).mockReturnValue('')
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+
+    await install('v1.2.3+build.1', '')
+
+    const key = `betterleaks-1.2.3-${process.platform}-${process.arch}`
+    expect(cache.restoreCache).toHaveBeenCalledWith([VERSION_DIR], key)
+    expect(cache.saveCache).toHaveBeenCalledWith([VERSION_DIR], key)
+    expect(tc.downloadTool).toHaveBeenCalledWith(
+      expect.stringContaining('/v1.2.3+build.1/betterleaks_1.2.3+build.1_'),
+      undefined,
+      undefined
+    )
+  })
+
+  it('does not log success when saveCache returns -1', async () => {
+    vi.mocked(tc.find).mockReturnValue('')
+    vi.mocked(cache.restoreCache).mockResolvedValue(undefined)
+    vi.mocked(cache.saveCache).mockResolvedValue(-1)
+
+    await install('v1.2.3', '')
+
+    expect(core.info).not.toHaveBeenCalledWith(
+      expect.stringContaining('Saved betterleaks')
+    )
+  })
+
   it('skips Actions cache when feature unavailable', async () => {
     vi.mocked(tc.find).mockReturnValue('')
     vi.mocked(cache.isFeatureAvailable).mockReturnValue(false)
