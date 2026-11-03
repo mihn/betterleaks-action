@@ -19,7 +19,7 @@ Betterleaks is a modern, open-source secrets detection tool built as the success
 ## Quick Start
 
 ```yaml
-- uses: dortort/betterleaks-action@v0.1.0
+- uses: mihn/betterleaks-action@v0.1.0
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
 ```

@@ -1,9 +1,9 @@
 import * as core from '@actions/core'
-import {install} from './installer'
-import {determineScanMode, buildArgs, run, ActionInputs} from './runner'
-import {parseSarifResults} from './sarif'
-import {writeSummary} from './summary'
-import {EXIT_CODE_LEAKS_FOUND} from './constants'
+import {install} from './installer.js'
+import {determineScanMode, buildArgs, run, ActionInputs} from './runner.js'
+import {parseSarifResults} from './sarif.js'
+import {writeSummary} from './summary.js'
+import {EXIT_CODE_LEAKS_FOUND} from './constants.js'
 
 function getInputs(): ActionInputs {
   return {
