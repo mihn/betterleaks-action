@@ -1,7 +1,9 @@
 import * as core from '@actions/core'
 import * as tc from '@actions/tool-cache'
+import * as cache from '@actions/cache'
 import {HttpClient} from '@actions/http-client'
 import * as path from 'path'
+import * as semver from 'semver'
 import {
   TOOL_NAME,
   TOOL_REPO_OWNER,
@@ -9,7 +11,7 @@ import {
   PLATFORM_MAP,
   getArchiveExtension,
   getBinaryName
-} from './constants'
+} from './constants.js'
 
 interface GitHubRelease {
   tag_name: string
@@ -82,8 +84,27 @@ export async function install(
   const resolvedVersion = await resolveVersion(version, token)
   const numericVersion = stripVPrefix(resolvedVersion)
 
-  // Check tool cache first
-  const cachedPath = tc.find(TOOL_NAME, numericVersion, arch)
+  const toolCacheRoot = process.env['RUNNER_TOOL_CACHE'] || ''
+  // Mirror @actions/tool-cache's directory naming (semver.clean) so the
+  // Actions cache path matches where cacheDir() actually writes.
+  const toolCacheVersion = semver.clean(numericVersion) || numericVersion
+  const cacheDirPath = path.join(toolCacheRoot, TOOL_NAME, toolCacheVersion)
+  const cacheKey = `${TOOL_NAME}-${toolCacheVersion}-${platform}-${arch}`
+  const actionsCacheEnabled = Boolean(toolCacheRoot) && cache.isFeatureAvailable()
+
+  // Check local tool cache, then restore from GitHub Actions cache
+  let cachedPath = tc.find(TOOL_NAME, numericVersion, arch)
+  if (!cachedPath && actionsCacheEnabled) {
+    try {
+      const hit = await cache.restoreCache([cacheDirPath], cacheKey)
+      if (hit) {
+        core.info(`Restored betterleaks ${numericVersion} from Actions cache`)
+        cachedPath = tc.find(TOOL_NAME, numericVersion, arch)
+      }
+    } catch (err) {
+      core.warning(`Actions cache restore failed: ${(err as Error).message}`)
+    }
+  }
   if (cachedPath) {
     core.info(`Found cached betterleaks ${numericVersion}`)
     return path.join(cachedPath, getBinaryName(platform))
@@ -110,6 +131,17 @@ export async function install(
   if (platform !== 'win32') {
     const {chmod} = await import('fs/promises')
     await chmod(binaryPath, 0o755)
+  }
+
+  if (actionsCacheEnabled) {
+    try {
+      const cacheId = await cache.saveCache([cacheDirPath], cacheKey)
+      if (cacheId !== -1) {
+        core.info(`Saved betterleaks ${numericVersion} to Actions cache`)
+      }
+    } catch (err) {
+      core.warning(`Actions cache save failed: ${(err as Error).message}`)
+    }
   }
 
   core.info(`Betterleaks ${resolvedVersion} installed to ${binaryPath}`)

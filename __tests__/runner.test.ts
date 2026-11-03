@@ -1,4 +1,5 @@
-import {determineScanMode, buildArgs, ActionInputs} from '../src/runner'
+import {describe, it, expect} from 'vitest'
+import {determineScanMode, buildArgs, ActionInputs} from '../src/runner.js'
 
 function makeInputs(overrides: Partial<ActionInputs> = {}): ActionInputs {
   return {
